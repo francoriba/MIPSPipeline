@@ -1,4 +1,6 @@
-.Xil/
-vivado.jou
 vivado.log
-vivado_pid2915263.str
+vivado.jou
+vivado_pid*.str
+.Xil/
+.vscode/
+.idea/
