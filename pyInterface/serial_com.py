@@ -72,4 +72,3 @@ def get_serial_port():
         print("Invalid port.")
         input("Press Enter to try again...")
         get_serial_port()
-
