@@ -4,7 +4,4 @@ vivado_pid*.str
 .Xil/
 .vscode/
 .idea/
-pyInterface/__pycache__
-pyInterface/__pycache__/cli.cpython-310.pyc
-pyInterface/__pycache__/interface.cpython-310.pyc
-pyInterface/__pycache__/mipsAssambler.cpython-310.pyc
+pyInterface/__pycache__/*
