@@ -1,27 +1,25 @@
-# pyASM
+# pyInterface
 
+## Requirements
 
-## Requisitos
+- [x] Recognize instructions from the set
+- [x] Recognize labels and assign them an address
+- [x] Recognize comments
+- [x] Recognize hexadecimal and binary format
+- [x] Define and recognize variables
 
-- [x] Reconocer instrucciones del set
-- [x] Reconocer labels y asignarles una dirección
-- [x] Reconocer Comentarios
-- [-] Reconocer formato hexadecimal y binario (Chequear todas)
-- [x] definir y reconocer variables
+> **_NOTE:_** Register used to store return addresses (theoretically called `$ra`) in our case is register `$r31`.
 
-## Notas
-El registro que corresponde a guardar las direcciones de retorno (En le teórico llamado $ra) en nuestro caso es el registro $r31
+# Functionality
 
-# Funcionamiento
-
-1. `validate_asm_code(file)` Hace un reconocimiento del código para detectar: 
-    + Comentarios y saltos de linea (Se ignoran).
-    + Comprobación de sintaxis de instrucciones y argumentos (Esta última en fomrato mas general).
-    + Detección de etiquetas y asignación de dirección a correspondiente. Se lanza una excepcion si alguna etiqueta está vacía.
-    + Detección de varaibles. Tipos aceptados: `int` y `uint` de 8, 16 y 32 bits.
+1. `validate_asm_syntax` Recognizes the code to detect:
+    + Comments and line breaks (Ignored).
+    + Syntax check for instructions and arguments (The latter in a more general format).
+    + Detects labels and assigns the corresponding address. Throws an exception if any label is empty.
+    + Detects variables. Accepted types: `int` and `uint` of 8, 16, and 32 bits.
  
-2. `assamble()` Compilación:
-    + Solo se avanza si la etapa anterior devuelve `True`.
-    + Se traduce línea por linea de intrucción y se realizan los reemplazos pertinentes (Nombres de variables y etiquetas).
-    + Cada línea se traduce según el tipo de intrucción al que pertenecen.
-    + El código compilado en código máquina se almacena en `instructions_machine_code`
+2. `assemble()` Compilation:
+    + Proceeds only if the previous stage returns `True`.
+    + Translates each instruction line by line and makes the necessary replacements (variable names and labels).
+    + Each line is translated according to the type of instruction it belongs to.
+    + The compiled machine code is stored in `instructions_machine_code`.

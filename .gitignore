@@ -4,3 +4,4 @@ vivado_pid*.str
 .Xil/
 .vscode/
 .idea/
+pyInterface/__pycache__

@@ -22,7 +22,7 @@ class mipsAssambler():
         self.current_line = 1
 
     # Validate the syntax of the assembly code
-    def validate_asm_code(self, input: str) -> bool:
+    def validate_asm_syntax(self, input: str) -> bool:
         lines = input.split('\n')
         lines = [line.strip() for line in lines if line != '']
         #print(lines)

@@ -59,7 +59,7 @@ class UI():
         input_file = input("Enter the file path: ")
         file = self.input_file(input_file)
         try:
-            if assembler.validate_asm_code(file):
+            if assembler.validate_asm_syntax(file):
                 print("Syntaxis OK!\n")
                 assembler.assamble(file)
         except Exception as e:
