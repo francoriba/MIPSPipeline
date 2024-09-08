@@ -1,5 +1,9 @@
 # pyInterface
 
+<p align="center">
+  <img src="../img/flow_chart_python.png"/>
+</p>
+
 ## Requirements
 
 - [x] Recognize instructions from the set
