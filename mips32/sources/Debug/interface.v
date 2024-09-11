@@ -43,7 +43,7 @@ module interface
     localparam CODE_ERROR_NO_PROGRAM_LOAD = 32'b00000000000000000000000000000010;
     localparam INSTRUCTION_HALT = 32'b11111111111111111111111111111111;
     
-    // Estados de la máquina de estados
+    // FSM states
     localparam STATE_READ = 5'b00000;
     localparam STATE_ACTIVATE_READER_BUFFER = 5'b00001;
     localparam STATE_WRITE = 5'b00010;
@@ -64,15 +64,15 @@ module interface
     localparam STATE_PRINT_MEM = 5'b10110;
 
     reg [4 : 0] state, state_next, return_state, return_state_next;
-    reg flush, flush_next; // reset de etapas
-    reg mips_enabled, mips_enabled_next; // habilita ejecución
-    reg clear_program, clear_program_next; // borra programa cargado
+    reg flush, flush_next; // reset stages
+    reg mips_enabled, mips_enabled_next; // enable execution
+    reg clear_program, clear_program_next; // clear loaded program
     reg uart_read, uart_read_next, uart_write, uart_write_next;
     reg print_regs, print_regs_next, print_mem, print_mem_next;
     reg [DATA_OUT_LEN - 1 : 0] ctrl_info, ctrl_info_next;
-    reg new_instruction, new_instruction_next; // para pasarle a IF
-    reg [REG_LEN - 1 : 0] mips_instruction, mips_instruction_next; // instrucción MIPS a tratar
-    reg step_mode, step_mode_next; // modo de ejecución paso a paso
+    reg new_instruction, new_instruction_next; // needed by IF
+    reg [REG_LEN - 1 : 0] mips_instruction, mips_instruction_next; // mips instruction to be handeled
+    reg step_mode, step_mode_next; // step by step execution mode
     reg [UART_DATA_LEN - 1 : 0] clk_counter, clk_counter_next;
 
     always @(posedge i_clk) 
@@ -132,10 +132,10 @@ module interface
     
         case (state)
 
-            // IDLE: esperar lectura
+            // IDLE: wait reading
             STATE_IDLE:
             begin
-                clk_counter_next = { { (UART_DATA_LEN - 1) { 1'b0 } }, 1'b1 }; // inicializo clock counter (1)
+                clk_counter_next = { { (UART_DATA_LEN - 1) { 1'b0 } }, 1'b1 }; // init clock counter (1)
                 mips_enabled_next = 1'b0;
                 new_instruction_next = 1'b0;
                 flush_next = 1'b0;
@@ -145,30 +145,30 @@ module interface
                 state_next = STATE_ACTIVATE_READER_BUFFER;
             end
 
-            /*####################### Lectura y escritura con buffer #######################*/
+            /*####################### Reading and Writing with buffer #######################*/
 
-            // ACTIVATE READER BUFFER: activo lectura de datos
+            // ACTIVATE READER BUFFER: enable data reading
             STATE_ACTIVATE_READER_BUFFER:
             begin
                 uart_read_next = 1'b0;
                 state_next = STATE_READ;
             end
 
-            // READ: leo datos de la UART hasta que se complete la lectura
+            // READ: read uart data until reading is complete
             STATE_READ:
             begin
                 if (i_uart_read_finish)
                     state_next = return_state;
             end
 
-            // ACTIVATE WRITER BUFFER: activo escritura de datos
+            // ACTIVATE WRITER BUFFER: enable data writing
             STATE_ACTIVATE_WRITER_BUFFER:
             begin
                 uart_write_next = 1'b0;
                 state_next = STATE_WRITE;
             end
 
-            // WRITE: escribo datos en la UART hasta que se complete la escritura
+            // WRITE: write data in UART until writing is complete
             STATE_WRITE:
             begin
                 if (i_uart_write_finish)
@@ -185,13 +185,13 @@ module interface
                 state_next = STATE_ACTIVATE_WRITER_BUFFER;
             end
 
-            /* ########################## Modos de operación ########################## */
+            /* ########################## Modes of Operation ########################## */
 
-            // CMD INSTRUCTION: comando de instrucción recibido
+            // CMD INSTRUCTION: instruction command received
             STATE_CMD_INSTRUCTION:
             begin
                 case (i_data_uart_read[7 : 0])
-                    // LOAD: cargar nuevo .asm
+                    // LOAD: load new .asm file
                     "L": 
                     begin
                         flush_next = 1'b1;
@@ -200,7 +200,7 @@ module interface
                         state_next = STATE_FLUSH;
                     end
 
-                    // CONTINUOUS: modo continuo de ejecución
+                    // CONTINUOUS: continuous excecution mode
                     "C":
                     begin
                         step_mode_next = 1'b0;
@@ -209,7 +209,7 @@ module interface
                         state_next = STATE_FLUSH;
                     end
 
-                    // STEPS: ejecución paso a paso
+                    // STEPS: step by step execution
                     "S":
                     begin
                         flush_next = 1'b1;
@@ -228,7 +228,7 @@ module interface
 
             /* ########################## Flush ########################## */
 
-            // FLUSH: reseteo etapas
+            // FLUSH: reset stages
             STATE_FLUSH:
             begin
                 clear_program_next = 1'b0;
@@ -236,22 +236,22 @@ module interface
                 state_next = return_state;
             end
 
-            /* ########################## Carga de programa ########################## */
+            /* ########################## Load Program ########################## */
             
-            // LOAD INSTRUCTION: cargar instruccion
+            // LOAD INSTRUCTION
             STATE_LOAD_INSTRUCTION:
             begin
                 new_instruction_next = 1'b0;
 
-                if (mips_instruction != INSTRUCTION_HALT) // cualquier instruccion excepto HALT
+                if (mips_instruction != INSTRUCTION_HALT) // anything but HALT
                     begin
-                        if (!i_instr_mem_full) // hay espacio
+                        if (!i_instr_mem_full) // the is space in the memory
                             begin
                                 uart_read_next = 1'b1;
                                 return_state_next = STATE_CONTINUE_LOADING;
-                                state_next = STATE_ACTIVATE_READER_BUFFER; // sigo leyendo
+                                state_next = STATE_ACTIVATE_READER_BUFFER; // keep reading
                             end
-                        else // lleno
+                        else // full
                             begin
                                 ctrl_info_next = {CODE_ERROR_PREFIX, CODE_NO_CICLE_MASK, CODE_NO_ADDRESS_MASK, CODE_ERROR_INSTRUCTION_MEMORY_FULL};
                                 uart_write_next = 1'b1;
@@ -259,7 +259,7 @@ module interface
                                 return_state_next  = STATE_IDLE;
                             end
                     end
-                else // para instruccion HALT (finaliza carga del programa)
+                else // for HALT (end program)
                     begin
                         ctrl_info_next = {CODE_INFO_PREFIX, CODE_NO_CICLE_MASK, CODE_NO_ADDRESS_MASK, CODE_INFO_LOAD_PROGRAM};
                         uart_write_next = 1'b1;
@@ -269,7 +269,7 @@ module interface
                     end
             end
 
-            // CONTINUE LOADING: continuar carga de proxima instruccion
+            // CONTINUE LOADING: continue loading next instruction
             STATE_CONTINUE_LOADING:
             begin
                 mips_instruction_next = i_data_uart_read;
@@ -277,19 +277,19 @@ module interface
                 state_next = STATE_LOAD_INSTRUCTION;
             end
 
-            /* ########################## Ejecución del Programa ########################## */
+            /* ########################## Program Execution Modes ########################## */
 
-            // RUN CONTINUOUS: ejecutar en modo continuo
+            // RUN CONTINUOUS
             STATE_RUN_CONTINUOUS:
             begin
                 if (!i_instr_mem_empty)
                     begin
-                        if (i_finish_program) // fin programa: imprimo registros
+                        if (i_finish_program) // print registers
                             begin
                                 print_regs_next = 1'b1;
                                 state_next = STATE_PRINT_REGS_START;
                             end
-                        else // programa continua: sigo ejecutando
+                        else // allow execution to continue
                             begin
                                 mips_enabled_next = 1'b1;
                                 clk_counter_next = clk_counter + 1;
@@ -302,19 +302,19 @@ module interface
                     end
             end
 
-            // RUN STEP: ejecutar un paso (por indicación por consola)
+            // RUN STEP BY STEP
             STATE_RUN_STEP_INSTRUCTION:
             begin
-                if (i_data_uart_read[7 : 0] == "N") // NEXT: ejecuto el siguiente paso
+                if (i_data_uart_read[7 : 0] == "N") // NEXT: command crom python CLI to move one step foward
                     begin
-                        if (!i_instr_mem_empty) // hay mas pasos
+                        if (!i_instr_mem_empty) // no more steps
                         begin
                             mips_enabled_next = 1'b1;
                             print_regs_next = 1'b1;
-                            state_next = STATE_PRINT_REGS_START; // print
+                            state_next = STATE_PRINT_REGS_START; // print registers, memory, pc
                             clk_counter_next = clk_counter + 1;
                         end
-                        else // lleno
+                        else // Instruction Memory Full
                             begin
                                 return_state_next = STATE_IDLE;
                                 state_next = STATE_EMPTY_PROGRAM;
@@ -334,12 +334,12 @@ module interface
                 state_next = STATE_ACTIVATE_READER_BUFFER;
             end
 
-            // FINISH RUN: finalizar ejecución o un paso
+            // FINISH RUN: finish step by step execution
             STATE_FINISH_RUN:
             begin
-                if (!i_finish_program) // no termina el programa
+                if (!i_finish_program) // program not finish yet
                     begin
-                        if (step_mode) // terminar un paso
+                        if (step_mode) // finish step
                             begin
                                 ctrl_info_next = {CODE_INFO_PREFIX, CODE_NO_CICLE_MASK, CODE_NO_ADDRESS_MASK, CODE_INFO_END_STEP};
                                 uart_write_next = 1'b1;
@@ -347,9 +347,9 @@ module interface
                                 state_next = STATE_ACTIVATE_WRITER_BUFFER;
                             end
                         else
-                            mips_enabled_next = 1'b1; // NO HACE FALTA YA
+                            mips_enabled_next = 1'b1; // No longer needed
                     end
-                else // programa termina
+                else // Program ends
                     begin
                         ctrl_info_next = {CODE_INFO_PREFIX, CODE_NO_CICLE_MASK, CODE_NO_ADDRESS_MASK, CODE_INFO_END_PROGRAM};
                         uart_write_next = 1'b1;
@@ -358,7 +358,7 @@ module interface
                     end
             end
 
-            /* ########################## Registros y Memoria ########################## */
+            /* ########################## Registers and Memory display ########################## */
             
             STATE_PRINT_REGS_START:
             begin
@@ -378,7 +378,7 @@ module interface
 
             STATE_PRINT_MEM_START:
             begin
-                print_mem_next = 1'b0;
+                print_mem_next = 1'b0;      // To avoid instructions to keep being excecuted while registers are being printed
                 state_next = STATE_PRINT_MEM;
             end
 

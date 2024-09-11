@@ -43,6 +43,10 @@ module top
 	wire [UART_DATA_BITS - 1 : 0] uart_data_rd;
 
     wire [4: 0] state;
+    
+    wire clk;
+
+
 
     uart
     #(
