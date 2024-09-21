@@ -7,7 +7,7 @@ from interface import Interface, ExecMode
 from colorama import Fore, Style, init
 init(autoreset=True)
 
-class UI():
+class Cli():
     def __init__(self):
         uart = None
         interface = None

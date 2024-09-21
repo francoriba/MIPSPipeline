@@ -54,21 +54,31 @@ else:
 def get_serial_port():
     try:
         ports_avail = list_ports.comports()
-        ports = [port.device for port in ports_avail]
+        usb_ports = [port for port in ports_avail if 'USB' in port.device]
     except:
         print("Error getting serial ports.")
         input("Press Enter to exit...")
         exit(1)
-    if len(ports_avail) == 0:
-        print("No serial ports available.")
-        input("Press Enter to try again...")
-        get_serial_port()
-    print("Available ports:")
-    options = [f"{i + 1}. {port}" for i, port in enumerate(ports)]
-    input_port = input("\n".join(options) + "\nSelect port: ")
-    try:
-        return ports[int(input_port) - 1]
-    except:
-        print("Invalid port.")
-        input("Press Enter to try again...")
-        get_serial_port()
+    
+    if len(usb_ports) == 0:
+        print("No USB serial ports available.")
+        input("Press Enter to exit...")
+        exit(1)
+    elif len(usb_ports) == 1:
+        print(f"Automatically selected USB port: {usb_ports[0].device}")
+        return usb_ports[0].device
+    else:
+        print("Available USB ports:")
+        for i, port in enumerate(usb_ports):
+            print(f"{i + 1}. {port.device}")
+        
+        while True:
+            try:
+                choice = int(input("Select port number: "))
+                if 1 <= choice <= len(usb_ports):
+                    return usb_ports[choice - 1].device
+                else:
+                    print("Invalid choice. Please try again.")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+
