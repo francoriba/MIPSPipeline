@@ -22,6 +22,8 @@ class MIPS32UI:
         self.table_window = None
         self.prev_registers = None
         self.prev_memory = None
+        self.min_font_size = 10
+        self.max_font_size = 20
 
     def create_widgets(self):
         main_frame = ttk.Frame(self.root, padding="20 20 20 20")
@@ -147,8 +149,8 @@ class MIPS32UI:
             main_frame = ttk.Frame(self.table_window, padding="20 20 20 20")
             main_frame.pack(fill=tk.BOTH, expand=True)
 
-            self.reg_text = tk.Text(main_frame, height=20, width=50, font=("Courier", 10))
-            self.mem_text = tk.Text(main_frame, height=20, width=50, font=("Courier", 10))
+            self.reg_text = tk.Text(main_frame, height=20, width=50, font=("Courier", self.min_font_size))
+            self.mem_text = tk.Text(main_frame, height=20, width=50, font=("Courier", self.min_font_size))
 
             self.reg_text.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
             self.mem_text.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
@@ -166,11 +168,16 @@ class MIPS32UI:
 
             self.reg_text.tag_configure('red', foreground='red')
             self.mem_text.tag_configure('blue', foreground='blue')
+
+            self.table_window.bind("<Configure>", self.adjust_font_size)
         else:
             self.reg_text.delete(1.0, tk.END)
             self.mem_text.delete(1.0, tk.END)
             self.pc_label.config(text=f"PC: 0x{pc:08X}")
 
+        self.update_table_content(register, memory)
+
+    def update_table_content(self, register, memory):
         self.reg_text.insert(tk.END, "Registers:\n", "bold")
         for reg in register:
             changed = self.value_changed(self.prev_registers, reg, 'addr')
@@ -185,6 +192,28 @@ class MIPS32UI:
 
         self.prev_registers = register
         self.prev_memory = memory
+
+    def adjust_font_size(self, event):
+        if event.widget == self.table_window:
+            width = event.width
+            height = event.height
+
+            # Calculate the ideal font size based on window dimensions
+            ideal_font_size = min(width // 80, height // 40)
+            
+            # Clamp the font size between min and max values
+            new_font_size = max(self.min_font_size, min(ideal_font_size, self.max_font_size))
+
+            # Update font size for both text widgets
+            current_font = self.reg_text.cget("font")
+            new_font = (current_font[0], new_font_size)
+            self.reg_text.configure(font=new_font)
+            self.mem_text.configure(font=new_font)
+
+            # Redraw the content with the new font size
+            self.reg_text.delete(1.0, tk.END)
+            self.mem_text.delete(1.0, tk.END)
+            self.update_table_content(self.prev_registers, self.prev_memory)
 
     def value_changed(self, prev_list, current_item, key):
         if prev_list is None:
