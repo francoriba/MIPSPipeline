@@ -1,6 +1,3 @@
-# Este programa calcula el valor absoluto de un número almacenado en un registro.
-# Si el número es negativo, lo convierte en positivo.
-
 # Propósito:
 # Determinar el valor absoluto de un número almacenado en `r1` y almacenarlo en `r2`.
 
