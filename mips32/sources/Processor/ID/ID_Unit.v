@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
 
 /*
-Se implementa la etapa de decodificación de instrucciones (ID: Instruction Decode),
-manejando las señales de control y datos necesarios para la ejecución de las instrucciones
+Implements the Instruction Decode (ID) stage,
+handling the necessary control and data signals for executing instructions.
 */
 
 module id
@@ -13,75 +13,75 @@ module id
     )
     (
         /* input controls wires */
-        input wire i_clk, // señal de clock
-        input wire i_reset, // señal de reset
-        input wire i_flush, // señal para vaciar
-        input wire i_write_enable, // señal de escritura
-        input wire i_ctrl_reg_source, // señal para seleccionar la fuente de los registros
+        input wire i_clk, 
+        input wire i_reset, 
+        input wire i_flush, 
+        input wire i_write_enable, 
+        input wire i_ctrl_reg_source, 
         /* input data wires */
-        input wire [$clog2(REGISTER_BANK_SIZE) - 1 : 0] i_reg_write_addr, // dirección en el banco de registros donde se va a escribir el dato
-        input wire [BUS_SIZE - 1 : 0] i_reg_write_bus, // datos que se escribirán en el banco
-        input wire [BUS_SIZE - 1 : 0] i_instruction, // instrucción que se está decodificando
-        input wire [BUS_SIZE - 1 : 0] i_ex_data_A, // dato A de la etapa EX
-        input wire [BUS_SIZE - 1 : 0] i_ex_data_B, // dato B de la etapa EX
-        input wire [PC_SIZE - 1 : 0] i_next_seq_pc, // dirección de la próxima instrucción secuencial
+        input wire [$clog2(REGISTER_BANK_SIZE) - 1 : 0] i_reg_write_addr, // address in the register bank where the data will be written
+        input wire [BUS_SIZE - 1 : 0] i_reg_write_bus, // data to be written in the register bank
+        input wire [BUS_SIZE - 1 : 0] i_instruction, // instruction being decoded
+        input wire [BUS_SIZE - 1 : 0] i_ex_data_A, // data A from the EX stage
+        input wire [BUS_SIZE - 1 : 0] i_ex_data_B, // data B from the EX stage
+        input wire [PC_SIZE - 1 : 0] i_next_seq_pc, // address of the next sequential instruction
         /* output control wires */
-        output wire o_next_pc_source, // fuente del próximo PC. Puede tener dos valores: 1 para una secuencia normal (incremento secuencial del PC) y 0 para una fuente externa, como una instrucción de salto.
-        output wire [2 : 0] o_mem_read_source, // fuente del dato a leer desde la memoria.
-        output wire [1 : 0] o_mem_write_source, // fuente del dato a escribir en la memoria
-        output wire o_mem_write, // señal para escribir en la memoria
-        output wire o_wb, // señal para write-back
-        output wire o_mem_to_reg, // indica si el dato que se lee desde la memoria debe ser transferido al banco de registros
-        output wire [1 : 0] o_reg_dst, // destino del dato en el banco de registros.
-        output wire o_alu_source_A, // indica si el primer operando de la ALU debe provenir de la etapa de ejecución (1) o del banco de registros (0)
-        output wire [2 : 0] o_alu_source_B, // indica la fuente del segundo operando de la ALU.
-        output wire [2 : 0] o_alu_opp, // operación que realizará la ALU
+        output wire o_next_pc_source, //  source of the next PC. Can have two values: 1 for a normal sequence (PC sequential increment) and 0 for an external source like a jump instruction.
+        output wire [2 : 0] o_mem_read_source, // source of the data to read from memory
+        output wire [1 : 0] o_mem_write_source, // // source of the data to write to memory
+        output wire o_mem_write, // signal to write to memory
+        output wire o_wb, // write-back signal
+        output wire o_mem_to_reg, // indicates if the data read from memory should be transferred to the register bank
+        output wire [1 : 0] o_reg_dst, // destination of the data in the register bank
+        output wire o_alu_source_A, // indicates if the first ALU operand should come from the execution stage (1) or the register bank (0)
+        output wire [2 : 0] o_alu_source_B, // indicates the source of the second ALU operand
+        output wire [2 : 0] o_alu_opp, // operation that the ALU will perform
         /* output data wires */
-        output wire [BUS_SIZE - 1 : 0] o_bus_A, // valor en el bus A que se enviará a la siguiente etapa del pipeline
-        output wire [BUS_SIZE - 1 : 0] o_bus_B, // valor en el bus B que se enviará a la siguiente etapa del pipeline
-        output wire [PC_SIZE - 1 : 0] o_next_not_seq_pc, // dirección de la próxima instrucción no secuencial
-        output wire [4 : 0] o_rs, // registro fuente RS
-        output wire [4 : 0] o_rt, // registro fuente RT
-        output wire [4 : 0] o_rd, // registro destino RD
-        output wire [5 : 0] o_funct, // función de la instrucción
-        output wire [5 : 0] o_opp, // operación de la instrucción
-        output wire [BUS_SIZE - 1 : 0] o_shamt_ext_unsigned, // shamt extendido sin signo
-        output wire [BUS_SIZE - 1 : 0] o_inm_ext_signed, // inmediato extendido con signo
-        output wire [BUS_SIZE - 1 : 0] o_inm_upp, // inmediato extendido con ceros en los bits menos significativos
-        output wire [BUS_SIZE - 1 : 0] o_inm_ext_unsigned, // inmediato extendido sin signo
+        output wire [BUS_SIZE - 1 : 0] o_bus_A,  // value on bus A that will be sent to the next stage of the pipeline
+        output wire [BUS_SIZE - 1 : 0] o_bus_B, // value on bus B that will be sent to the next stage of the pipeline
+        output wire [PC_SIZE - 1 : 0] o_next_not_seq_pc, // address of the next non-sequential instruction
+        output wire [4 : 0] o_rs, // source register RS
+        output wire [4 : 0] o_rt, // source register RT
+        output wire [4 : 0] o_rd, // destination register RD
+        output wire [5 : 0] o_funct, // function of the instruction
+        output wire [5 : 0] o_opp, // operation of the instruction
+        output wire [BUS_SIZE - 1 : 0] o_shamt_ext_unsigned, // unsigned extended shamt
+        output wire [BUS_SIZE - 1 : 0] o_inm_ext_signed, // signed extended immediate
+        output wire [BUS_SIZE - 1 : 0] o_inm_upp, // immediate extended with zeros in the least significant bits
+        output wire [BUS_SIZE - 1 : 0] o_inm_ext_unsigned, // unsigned extended immediate
         /* debug wires */
         output wire [REGISTER_BANK_SIZE * BUS_SIZE - 1 : 0] o_bus_debug
     );
 
     /* Internal wires */
-    wire are_equal_values_result; // señal para saber si dos valores son diferentes
-    wire is_nop_result; // señal para saber si la instrucción es un NOP
-    wire [1 : 0] jmp_ctrl; // control para saber si la instrucción es de salto
-    wire [19 : 0] ctrl_register; // registros de control de la etapa ID
-    wire [16 : 0] next_stage_ctrl_register; // registros de control de la siguiente etapa
-    wire [BUS_SIZE - 1 : 0] inm_ext_signed_shifted; // inmediato extendido con signo y desplazado
-    wire [BUS_SIZE - 1 : 0] dir_ext_unsigned; // dirección extendida sin signo
-    wire [BUS_SIZE - 1 : 0] dir_ext_unsigned_shifted; // dirección extendida sin signo y desplazada
+    wire are_equal_values_result; // signal to know if two values are different
+    wire is_nop_result; // signal to know if the instruction is a NOP
+    wire [1 : 0] jmp_ctrl; // control to know if the instruction is a jump
+    wire [19 : 0] ctrl_register; // control registers for the ID stage
+    wire [16 : 0] next_stage_ctrl_register; // control registers for the next stage
+    wire [BUS_SIZE - 1 : 0] inm_ext_signed_shifted; // signed extended and shifted immediate
+    wire [BUS_SIZE - 1 : 0] dir_ext_unsigned; // unsigned extended address
+    wire [BUS_SIZE - 1 : 0] dir_ext_unsigned_shifted; // unsigned extended and shifted address
 
-    wire [4 : 0] shamt; // shamt de la instrucción
-    wire [15 : 0] inm; // inmediato de la instrucción
-    wire [25 : 0] dir; // dirección de la instrucción
-    wire [BUS_SIZE - 1 : 0] branch_pc_dir; // dirección de la próxima instrucción en caso de salto condicional
-    wire [BUS_SIZE - 1 : 0] jump_pc_dir; // dirección de la próxima instrucción en caso de salto no condicional
+    wire [4 : 0] shamt; // shamt of the instruction
+    wire [15 : 0] inm; // immediate of the instruction
+    wire [25 : 0] dir; // address of the instruction
+    wire [BUS_SIZE - 1 : 0] branch_pc_dir; // address of the next instruction in case of a conditional jump
+    wire [BUS_SIZE - 1 : 0] jump_pc_dir; // address of the next instruction in case of an unconditional jump
     
     /* Assignment internal wires */
-    assign jmp_ctrl = ctrl_register[18:17]; // control para saber si la instrucción es de salto
-    assign jump_pc_dir = { i_next_seq_pc[31:28], dir_ext_unsigned_shifted[27:0] }; // calcular la dirección de salto
+    assign jmp_ctrl = ctrl_register[18:17]; // control to know if the instruction is a jump
+    assign jump_pc_dir = { i_next_seq_pc[31:28], dir_ext_unsigned_shifted[27:0] }; // calculate jump address
 
-    /* formato intruccion */
+    /* Instruction format */
     assign o_opp = i_instruction[31:26];
-    assign o_rs = i_instruction[25:21]; // Tipo R
+    assign o_rs = i_instruction[25:21]; // R-Type
     assign o_rt = i_instruction[20:16];
     assign o_rd = i_instruction[15:11];
     assign shamt = i_instruction[10:6];
     assign o_funct = i_instruction[5:0];
-    assign inm = i_instruction[15:0]; // Tipo I
-    assign dir = i_instruction[25:0]; // Tipo J
+    assign inm = i_instruction[15:0]; // I-Type
+    assign dir = i_instruction[25:0]; // J-Type
 
     assign o_next_pc_source = ctrl_register[19];
     assign o_reg_dst = next_stage_ctrl_register[16:15];
@@ -115,7 +115,7 @@ module id
         .o_bus_debug    (o_bus_debug)
     );
 
-    /* Control: generar señales de control necesarias */
+    /* Control: generate necessary control signals */
     ctrl_register ctrl_register_unit 
     (
         .i_are_equal (are_equal_values_result),
@@ -125,7 +125,7 @@ module id
         .o_ctrl_register (ctrl_register)
     );
 
-    /* Multiplexor para seleccionar el siguiente registro de control de la etapa */
+    /* Multiplexer to select the next control register for the stage */
     mux 
     #(
         .CHANNELS(2), 
@@ -138,7 +138,7 @@ module id
         .data_out (next_stage_ctrl_register)
     );
 
-    /* Multiplexor para seleccionar el siguiente PC */
+    /* Multiplexer to select the next PC */
     mux 
     #(
         .CHANNELS(3), 
@@ -203,7 +203,7 @@ module id
         .o_extended_value (o_inm_ext_unsigned)
     );    
 
-    /* Verificar A igual a B */
+    /*Check A = B */
     is_equal 
     #(
         .DATA_LEN (BUS_SIZE)
@@ -215,7 +215,7 @@ module id
         .o_is_equal (are_equal_values_result)
     );
 
-    /* Verificar instruccion NOP */
+    /* Check if it's NOP */
     is_nop 
     #(
         .DATA_LEN (BUS_SIZE)
@@ -265,7 +265,7 @@ module id
         .o_shifted (o_inm_upp)
     );
 
-    /* Calcular next branch PC */
+    /* Compute next branch PC */
     adder 
     #
     (
