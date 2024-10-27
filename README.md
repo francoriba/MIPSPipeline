@@ -123,3 +123,14 @@ stateDiagram-v2
   - From `STATE_RUN_STEP_INSTRUCTION` when not receiving "N" command.
   - From `STATE_FINISH_RUN` in step mode.
 - **Use case**: Waiting for the next step command in step mode.
+
+###  Step-by-step mode
+
+* The system clock is always running, but the MIPS processor only executes instructions when mips_enabled is high.
+* In step-by-step mode, the mips_enabled signal is carefully controlled to allow only one instruction execution at a time. This is primarily handled in the STATE_RUN_STEP_INSTRUCTION state of the debug interface state machine.
+
+* When a step command ("N" for Next) is received, the system does the following:
+    * It sets mips_enabled_next to 1'b1, allowing the MIPS processor to execute one instruction.
+    * It then immediately transitions to STATE_PRINT_REGS_START, which will disable the MIPS processor after the instruction execution.
+*In the STATE_PRINT_REGS_START state, the system disables the MIPS processor
+* The system then goes through the process of printing registers and memory, before returning to STATE_FINISH_RUN and then STATE_WAIT_NEXT_STEP, where it waits for the next step command.
