@@ -134,3 +134,5 @@ stateDiagram-v2
     * It then immediately transitions to STATE_PRINT_REGS_START, which will disable the MIPS processor after the instruction execution.
 *In the STATE_PRINT_REGS_START state, the system disables the MIPS processor
 * The system then goes through the process of printing registers and memory, before returning to STATE_FINISH_RUN and then STATE_WAIT_NEXT_STEP, where it waits for the next step command.
+
+<img src="/img/fsm.drawio.png" alt="Descripción de la imagen" width="120%">
